@@ -3,22 +3,11 @@ from model import Model
 from shape import Point, Line, Triangle
 from vector import Vector
 
-width = 500
-height = 300
-image = Image(width, height, Color(255, 255, 255, 255))
-
-# Init z-buffer
-zBuffer = [-float('inf')] * width * height
-
-# Load the model
-model = Model('data/cow.obj')
-model.normalizeGeometry()
-
-def getOrthographicProjection(x, y, z):
+def getOrthographicProjection(x, y, z, w, h):
 	# Convert vertex from world space to screen space
 	# by dropping the z-coordinate (Orthographic projection)
-	screenX = int((x+1.0)*width/2.0)
-	screenY = int((y+1.0)*height/2.0)
+	screenX = int((x+1.0)*w/2.0)
+	screenY = int((y+1.0)*h/2.0)
 
 	return screenX, screenY
 
@@ -30,50 +19,53 @@ def getVertexNormal(vertIndex, faceNormalsByVertex):
 
 	return normal / len(faceNormalsByVertex[vertIndex])
 
-# Calculate face normals
-faceNormals = {}
-for face in model.faces:
-	p0, p1, p2 = [model.vertices[i] for i in face]
-	faceNormal = (p2-p0).cross(p1-p0).normalize()
+def render(image, model):
+	# Init z-buffer
+	zBuffer = [-float('inf')] * image.width * image.height
 
-	for i in face:
-		if not i in faceNormals:
-			faceNormals[i] = []
+	# Calculate face normals
+	faceNormals = {}
+	for face in model.faces:
+		p0, p1, p2 = [model.vertices[i] for i in face]
+		faceNormal = (p2-p0).cross(p1-p0).normalize()
 
-		faceNormals[i].append(faceNormal)
+		for i in face:
+			if not i in faceNormals:
+				faceNormals[i] = []
 
-# Calculate vertex normals
-vertexNormals = []
-for vertIndex in range(len(model.vertices)):
-	vertNorm = getVertexNormal(vertIndex, faceNormals)
-	vertexNormals.append(vertNorm)
+			faceNormals[i].append(faceNormal)
 
-# Render the image iterating through faces
-for face in model.faces:
-	p0, p1, p2 = [model.vertices[i] for i in face]
-	n0, n1, n2 = [vertexNormals[i] for i in face]
+	# Calculate vertex normals
+	vertexNormals = []
+	for vertIndex in range(len(model.vertices)):
+		vertNorm = getVertexNormal(vertIndex, faceNormals)
+		vertexNormals.append(vertNorm)
 
-	# Define the light direction
-	lightDir = Vector(0, 0, -1)
+	# Render the image iterating through faces
+	for face in model.faces:
+		p0, p1, p2 = [model.vertices[i] for i in face]
+		n0, n1, n2 = [vertexNormals[i] for i in face]
 
-	# Set to true if face should be culled
-	cull = False
+		# Define the light direction
+		lightDir = Vector(0, 0, -1)
 
-	# Transform vertices and calculate lighting intensity per vertex
-	transformedPoints = []
-	for p, n in zip([p0, p1, p2], [n0, n1, n2]):
-		intensity = n * lightDir
+		# Set to true if face should be culled
+		cull = False
 
-		# Intensity < 0 means light is shining through the back of the face
-		# In this case, don't draw the face at all ("back-face culling")
-		if intensity < 0:
-			cull = True
-			break
+		# Transform vertices and calculate lighting intensity per vertex
+		transformedPoints = []
+		for p, n in zip([p0, p1, p2], [n0, n1, n2]):
+			intensity = n * lightDir
 
-		screenX, screenY = getOrthographicProjection(p.x, p.y, p.z)
-		transformedPoints.append(Point(screenX, screenY, p.z, Color(intensity*255, intensity*255, intensity*255, 255)))
+			# Intensity < 0 means light is shining through the back of the face
+			# In this case, don't draw the face at all ("back-face culling")
+			if intensity < 0:
+				cull = True
+				break
 
-	if not cull:
-		Triangle(transformedPoints[0], transformedPoints[1], transformedPoints[2]).draw(image, zBuffer)
+			screenX, screenY = getOrthographicProjection(p.x, p.y, p.z, image.width, image.height)
+			transformedPoints.append(Point(screenX, screenY, p.z, Color(intensity*255, intensity*255, intensity*255, 255)))
 
-image.saveAsPNG("image.png")
+		if not cull:
+			Triangle(transformedPoints[0], transformedPoints[1], transformedPoints[2]).draw(image, zBuffer)
+
