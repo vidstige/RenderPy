@@ -11,7 +11,7 @@
 		Triangle(p0, p1, p2).draw(image)
 """
 
-from image import Image, Color
+from .image import Image, Color
 
 class Point(object):
 	""" A point in 2D space with an associated color.

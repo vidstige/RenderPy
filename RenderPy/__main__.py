@@ -1,6 +1,6 @@
-from image import Image, Color
-from model import Model
-from render import render
+from .image import Image, Color
+from .model import Model
+from .render import render
 
 def main():
     width = 500

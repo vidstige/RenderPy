@@ -1,7 +1,7 @@
-from image import Image, Color
-from model import Model
-from shape import Point, Line, Triangle
-from vector import Vector
+from .image import Image, Color
+from .model import Model
+from .shape import Point, Line, Triangle
+from .vector import Vector
 
 def getOrthographicProjection(x, y, z, w, h):
 	# Convert vertex from world space to screen space

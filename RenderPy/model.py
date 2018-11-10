@@ -3,7 +3,7 @@
 	Written using only the Python standard library.
 """
 
-from vector import Vector
+from .vector import Vector
 
 class Model(object):
 	def __init__(self, file):
